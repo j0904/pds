@@ -1,12 +1,19 @@
 version: '3.9'
+
+networks:
+  bluesky-net:
+    driver: bridge
+
 services:
     container_name: pds
     image: ghcr.io/bluesky-social/pds:0.4
-    network_mode: host
+    ports:
+      - "2583:2583"
+    network_mode: bluesky-net
     restart: unless-stopped
     volumes:
       - type: bind
-        source: /pds
+        source: /vm/data/pds/pds
         target: /pds
     env_file:
       - /pds/pds.env
