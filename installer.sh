@@ -173,6 +173,9 @@ function main {
   #
   # Prompt user for required variables.
   #
+  PDS_HOSTNAME=pds.bigt.ai
+  PDS_ADMIN_EMAIL=adminpds@bigt.ai
+
   if [[ -z "${PDS_HOSTNAME}" ]]; then
     cat <<INSTALLER_MESSAGE
 ---------------------------------------
@@ -326,7 +329,7 @@ CADDYFILE
   #
   # Created here so that we can use it later in multiple places.
   PDS_ADMIN_PASSWORD=$(eval "${GENERATE_SECURE_SECRET_CMD}")
-  cat <<PDS_CONFIG >"${PDS_DATADIR}/pds.env"
+  cat <<PDS_CONFIG >"pds.env"
 PDS_HOSTNAME=${PDS_HOSTNAME}
 PDS_JWT_SECRET=$(eval "${GENERATE_SECURE_SECRET_CMD}")
 PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}
@@ -341,21 +344,16 @@ PDS_REPORT_SERVICE_URL=${PDS_REPORT_SERVICE_URL}
 PDS_REPORT_SERVICE_DID=${PDS_REPORT_SERVICE_DID}
 PDS_CRAWLERS=${PDS_CRAWLERS}
 LOG_ENABLED=true
+PDS_INVITE_REQUIRED=false
+PDS_DB_POSTGRES_URL=postgres://postgres:postgres@pds-postgres:5432/pds
 PDS_CONFIG
 
   #
   # Download and install pds launcher.
-  #
-  echo "* Downloading PDS compose file"
-  curl \
-    --silent \
-    --show-error \
-    --fail \
-    --output "${PDS_DATADIR}/compose.yaml" \
-    "${COMPOSE_URL}"
+  # (Removed downloading compose.yaml, now using local compose.yaml)
 
   # Replace the /pds paths with the ${PDS_DATADIR} path.
-  sed --in-place "s|/pds|${PDS_DATADIR}|g" "${PDS_DATADIR}/compose.yaml"
+  #sed --in-place "s|/pds|${PDS_DATADIR}|g" "${PDS_DATADIR}/compose.yaml"
 
   #
   # Create the systemd service.
@@ -372,40 +370,9 @@ After=docker.service
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=${PDS_DATADIR}
-ExecStart=/usr/bin/docker compose --file ${PDS_DATADIR}/compose.yaml up --detach
-ExecStop=/usr/bin/docker compose --file ${PDS_DATADIR}/compose.yaml down
-
-[Install]
-WantedBy=default.target
+ExecStart=/usr/bin/docker compose --file  compose.yaml up --detach
+ExecStop=/usr/bin/docker compose --file   compose.yaml down
 SYSTEMD_UNIT_FILE
-
-  systemctl daemon-reload
-  systemctl enable pds
-  systemctl restart pds
-
-  # Enable firewall access if ufw is in use.
-  if ufw status >/dev/null 2>&1; then
-    if ! ufw status | grep --quiet '^80[/ ]'; then
-      echo "* Enabling access on TCP port 80 using ufw"
-      ufw allow 80/tcp >/dev/null
-    fi
-    if ! ufw status | grep --quiet '^443[/ ]'; then
-      echo "* Enabling access on TCP port 443 using ufw"
-      ufw allow 443/tcp >/dev/null
-    fi
-  fi
-
-  #
-  # Download and install pdadmin.
-  #
-  echo "* Downloading pdsadmin"
-  curl \
-    --silent \
-    --show-error \
-    --fail \
-    --output "/usr/local/bin/pdsadmin" \
-    "${PDSADMIN_URL}"
-  chmod +x /usr/local/bin/pdsadmin
 
   cat <<INSTALLER_MESSAGE
 ========================================================================
@@ -438,12 +405,6 @@ To see pdsadmin commands, run "pdsadmin help"
 ========================================================================
 INSTALLER_MESSAGE
 
-  CREATE_ACCOUNT_PROMPT=""
-  read -p "Create a PDS user account? (y/N): " CREATE_ACCOUNT_PROMPT
-
-  if [[ "${CREATE_ACCOUNT_PROMPT}" =~ ^[Yy] ]]; then
-    pdsadmin account create
-  fi
 
 }
 

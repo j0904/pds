@@ -5,16 +5,29 @@ networks:
     driver: bridge
 
 services:
+  pds:
     container_name: pds
     image: ghcr.io/bluesky-social/pds:0.4
     ports:
       - "2583:2583"
-    network_mode: bluesky-net
+    networks:
+      - bluesky-net
     restart: unless-stopped
     volumes:
-      - type: bind
-        source: /vm/data/pds/pds
-        target: /pds
+      - /data/vm/pds/pds:/pds 
     env_file:
-      - /pds/pds.env
+      -  pds.env
+
+  postgres:
+    image: postgres:15
+    container_name: pds-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pds
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - /data/vm/pds-postgres/var/lib/postgresql/data:/var/lib/postgresql/data
+    networks:
+      - bluesky-net
 
