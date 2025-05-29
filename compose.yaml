@@ -1,4 +1,3 @@
-version: '3.9'
 
 networks:
   bluesky-net:
@@ -7,7 +6,7 @@ networks:
 services:
   pds:
     container_name: pds
-    image: ghcr.io/bluesky-social/pds:0.4
+    image: bluesky_pds
     ports:
       - "2583:2583"
     networks:
